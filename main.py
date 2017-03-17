@@ -91,6 +91,7 @@ def bottom_of_hand(img):
 image_addr = "1.jpg"
 img = image_loading(image_addr)
 img_c = cv2.cvtColor(img,cv2.COLOR_RGB2YCR_CB)
+"""
 left = left_side_of_hand(img)
 print left
 right = right_side_of_hand(img)
@@ -99,7 +100,10 @@ top = top_of_hand(img)
 print top
 bottom = bottom_of_hand(img)
 print bottom
-#showing_image(img,"original image")
-#showing_image(img_c,"transformed image")
-#closing_image("original image")
-#closing_image("transformed image")
+"""
+"""
+showing_image(img,"original image")
+showing_image(img_c,"transformed image")
+closing_image("original image")
+closing_image("transformed image")
+"""

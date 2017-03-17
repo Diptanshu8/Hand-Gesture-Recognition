@@ -28,42 +28,44 @@ def left_side_of_hand(img):
     min_col = cols
     #just a hack for now
     background = img[0][0]
-    row = 0
-    while row<rows:
-        col = 0
-        while col<cols:
+    col = 0
+    while col<cols:
+        row = 0
+        while row<rows:
             temp = []
             temp = [item for item in img[row][col] if item not in background]
-            if temp != [] and col<min_col:
-                min_col = col
-            col+=1
-        row+=1
-    return min_col
+            if temp != []:
+                return col
+            row+=1
+        col+=1
+    return (-1,-1)
 
 def right_side_of_hand(img):
     rows,cols,channels = img.shape
     max_col = 0
     #just a hack for now
     background = img[0][0]
-    row = 0
-    while row<rows:
-        col = cols-1
-        while col>0:
+    col = cols-1
+    while col>0:
+        row = 0
+        while row<rows:
             temp = []
             temp = [item for item in img[row][col] if item not in background]
-            if temp != [] and col>max_col:
-                max_col = col
-            col-=1
-        row+=1
-    return max_col
+            if temp != []:
+                return col
+            row+=1
+        col-=1
+    return (-1,-1)
 
+def top_of_hand(img):
+    pass
 image_addr = "1.jpg"
 img = image_loading(image_addr)
 img_c = cv2.cvtColor(img,cv2.COLOR_RGB2YCR_CB)
-left_col = left_side_of_hand(img)
-print left_col
-right_col = right_side_of_hand(img)
-print right_col
+left = left_side_of_hand(img)
+print left
+right = right_side_of_hand(img)
+print right
 #showing_image(img,"original image")
 #showing_image(img_c,"transformed image")
 #closing_image("original image")

@@ -1,5 +1,6 @@
 import cv2
 import os
+import numpy as np
 
 def image_loading(img_addr):
     #function for checking if image is loaded successfully
@@ -93,9 +94,15 @@ img = image_loading(image_addr)
 #img_c = cv2.cvtColor(img,cv2.COLOR_BGR2YCR_CB)
 img_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 ret,img_binary_otsu= cv2.threshold(img_gray,127,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+kernel = np.ones((5,5),np.uint8)
+img_eroded = cv2.erode(img_binary_otsu,kernel,iterations = 1)
+closing = cv2.morphologyEx(img_eroded, cv2.MORPH_OPEN,  kernel)
+
 showing_image(img,"Original image")
 showing_image(img_gray,"Gray image")
 showing_image(img_binary_otsu,"Binary image")
+showing_image(img_eroded,"eroded image")
+showing_image(closing,"closed image")
 
 cv2.destroyAllWindow()
 

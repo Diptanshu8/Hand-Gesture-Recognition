@@ -1,7 +1,7 @@
 import cv2
 import os
 import numpy as np
-
+from PIL import Image
 def image_loading(img_addr):
     #function for checking if image is loaded successfully
     if os.path.isfile(img_addr):
@@ -88,6 +88,20 @@ def bottom_of_hand(img):
         row-=1
     return -1
 
+def generating_boundary_of_hand(img):
+    rows,cols= img.shape
+    blank_image = np.zeros((rows,cols,1), np.uint8)
+    blank_image.fill(0)
+    row,col = 0,0
+    values = []
+    while row<rows-1:
+        col = 0
+        while col<cols-1:
+            if img[row][col+1]!=img[row][col]:
+                blank_image[row][col]=255
+            col+=1
+        row+=1
+    return blank_image
 
 image_addr = "Chirag1F.jpg"
 img = image_loading(image_addr)
@@ -97,16 +111,16 @@ ret,img_binary_otsu= cv2.threshold(img_gray,127,255,cv2.THRESH_BINARY+cv2.THRESH
 kernel = np.ones((5,5),np.uint8)
 img_eroded = cv2.erode(img_binary_otsu,kernel,iterations = 1)
 closing = cv2.morphologyEx(img_eroded, cv2.MORPH_OPEN,  kernel)
+hand_boundary = generating_boundary_of_hand(closing)
 
 showing_image(img,"Original image")
-showing_image(img_gray,"Gray image")
-showing_image(img_binary_otsu,"Binary image")
+#showing_image(img_gray,"Gray image")
+#showing_image(img_binary_otsu,"Binary image")
 showing_image(img_eroded,"eroded image")
-showing_image(closing,"closed image")
+showing_image(closing,"temp image")
+showing_image(hand_boundary,"boundary image")
 
 cv2.destroyAllWindow()
-
-
 """
 left = left_side_of_hand(img)
 print left

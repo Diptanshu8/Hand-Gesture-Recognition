@@ -88,9 +88,18 @@ def bottom_of_hand(img):
     return -1
 
 
-image_addr = "1.jpg"
+image_addr = "Chirag1F.jpg"
 img = image_loading(image_addr)
-img_c = cv2.cvtColor(img,cv2.COLOR_RGB2YCR_CB)
+#img_c = cv2.cvtColor(img,cv2.COLOR_BGR2YCR_CB)
+img_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+ret,img_binary_otsu= cv2.threshold(img_gray,127,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+showing_image(img,"Original image")
+showing_image(img_gray,"Gray image")
+showing_image(img_binary_otsu,"Binary image")
+
+cv2.destroyAllWindow()
+
+
 """
 left = left_side_of_hand(img)
 print left

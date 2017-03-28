@@ -89,19 +89,13 @@ def bottom_of_hand(img):
     return -1
 
 def generating_boundary_of_hand(img):
-    rows,cols= img.shape
-    blank_image = np.zeros((rows,cols,1), np.uint8)
-    blank_image.fill(0)
-    row,col = 0,0
-    values = []
-    while row<rows-1:
-        col = 0
-        while col<cols-1:
-            if img[row][col+1]!=img[row][col]:
-                blank_image[row][col]=255
-            col+=1
-        row+=1
-    return blank_image
+    v = np.median(img)
+    sigma = 0.33
+    # apply automatic Canny edge detection using the computed median
+    lower = int(max(0, (1.0 - sigma) * v))
+    upper = int(min(255, (1.0 + sigma) * v))
+    hand_boundary = cv2.Canny(img, lower, upper)
+    return hand_boundary
 
 image_addr = "Chirag1F.jpg"
 img = image_loading(image_addr)
@@ -111,10 +105,11 @@ ret,img_binary_otsu= cv2.threshold(img_gray,127,255,cv2.THRESH_BINARY+cv2.THRESH
 kernel = np.ones((5,5),np.uint8)
 img_eroded = cv2.erode(img_binary_otsu,kernel,iterations = 1)
 closing = cv2.morphologyEx(img_eroded, cv2.MORPH_OPEN,  kernel)
-hand_boundary = generating_boundary_of_hand(closing)
+hand_boundary=generating_boundary_of_hand(closing)
+
 
 showing_image(img,"Original image")
-#showing_image(img_gray,"Gray image")
+showing_image(img_binary_otsu,"Binary image")
 #showing_image(img_binary_otsu,"Binary image")
 showing_image(img_eroded,"eroded image")
 showing_image(closing,"temp image")

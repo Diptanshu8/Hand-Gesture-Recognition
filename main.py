@@ -131,9 +131,30 @@ def horizontal_identification(img):
                 identified_pixels+=1
     return (identified_pixels/(total_pixels+0.0))
 
+def image_moment(img,i,j):
+    rows,cols = img.shape
+    moment = 0
+    row,col=0,0
+    while row<rows:
+        col=0
+        while col<cols:
+            moment = moment+((row**i)*(col**j)*(img[row][col])/255)
+            col+=1
+        row+=1
+    return moment
+
+def compute_centroid(img):
+    print("Computing centroid")
+    IM_00 = image_moment(img,0,0)
+    print("Done computing M00")
+    IM_01 = image_moment(img,0,1)
+    print("Done computing M01")
+    IM_10 = image_moment(img,1,0)
+    print("Done computing M10")
+    return (IM_10/IM_00,IM_01/IM_00)
+
 def image_processing(image_addr):
     img = image_loading(image_addr)
-    #img_c = cv2.cvtColor(img,cv2.COLOR_BGR2YCR_CB)
     img_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     ret,img_binary_otsu= cv2.threshold(img_gray,127,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
     kernel = np.ones((5,5),np.uint8)
@@ -142,12 +163,13 @@ def image_processing(image_addr):
     hand_boundary=generating_boundary_of_hand(closing)
     vertical_ratio = vertical_identification(hand_boundary)
     horizontal_ratio = horizontal_identification(hand_boundary)
-    if vertical_ratio>horizontal_ratio:
-        print(image_addr +" is horizontally oriented image")
-    elif vertical_ratio<horizontal_ratio:
-        print(image_addr +" is vertically oriented image")
-    else:
-        print("ambigious data. DISCARD IT")
+    centroid = compute_centroid(img_binary_otsu)
+    #if vertical_ratio>horizontal_ratio:
+    #    print(image_addr +" is horizontally oriented image")
+    #elif vertical_ratio<horizontal_ratio:
+#        print(image_addr +" is vertically oriented image")
+#    else:
+#        print("ambigious data. DISCARD IT")
     #showing_image(img,"Original image")
     #showing_image(img_binary_otsu,"Binary image")
     #showing_image(img_binary_otsu,"Binary image")

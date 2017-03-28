@@ -97,6 +97,22 @@ def generating_boundary_of_hand(img):
     hand_boundary = cv2.Canny(img, lower, upper)
     return hand_boundary
 
+def vertical_or_horizontal(img):
+    rows,cols = img.shape
+    mid_row = rows/2
+    mid_col = cols/2
+    total_pixels = rows*cols
+    offset = 0.15 #15% offset
+    row_mask = range(mid_row-int(mid_row*offset),mid_row+int(mid_row*offset))
+    col_mask = range(0,int(cols*offset))+range(cols-int(cols*offset),cols)
+    identified_pixels,boundary_intensity = 0,255
+    string = ""
+    for row in row_mask:
+        for col in col_mask:
+            if img[row][col] == 255:
+                identified_pixels+=1
+    print (identified_pixels/(total_pixels+0.0))
+
 image_addr = "Chirag1F.jpg"
 img = image_loading(image_addr)
 #img_c = cv2.cvtColor(img,cv2.COLOR_BGR2YCR_CB)
@@ -106,16 +122,16 @@ kernel = np.ones((5,5),np.uint8)
 img_eroded = cv2.erode(img_binary_otsu,kernel,iterations = 1)
 closing = cv2.morphologyEx(img_eroded, cv2.MORPH_OPEN,  kernel)
 hand_boundary=generating_boundary_of_hand(closing)
+vertical_or_horizontal(hand_boundary)
 
-
-showing_image(img,"Original image")
-showing_image(img_binary_otsu,"Binary image")
+#showing_image(img,"Original image")
 #showing_image(img_binary_otsu,"Binary image")
-showing_image(img_eroded,"eroded image")
-showing_image(closing,"temp image")
-showing_image(hand_boundary,"boundary image")
+#showing_image(img_binary_otsu,"Binary image")
+#showing_image(img_eroded,"eroded image")
+#showing_image(closing,"temp image")
+#showing_image(hand_boundary,"boundary image")
 
-cv2.destroyAllWindow()
+#cv2.destroyAllWindow()
 """
 left = left_side_of_hand(img)
 print left

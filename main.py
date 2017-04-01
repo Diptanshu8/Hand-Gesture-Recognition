@@ -1,7 +1,9 @@
 import cv2
 import os
 import time
+import math
 import numpy as np
+import matplotlib.pyplot as plt
 from PIL import Image
 def image_loading(img_addr):
     #function for checking if image is loaded successfully
@@ -131,27 +133,72 @@ def horizontal_identification(img):
                 identified_pixels+=1
     return (identified_pixels/(total_pixels+0.0))
 
-def image_moment(img,i,j):
+def compute_centroid(img):
+    contours, hierarchy = cv2.findContours(img,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    cont_area = [cv2.contourArea(item) for item in contours]
+    cnt = contours[cont_area.index(max(cont_area))]
+    M = cv2.moments(cnt)
+    centroid = (M['m10']/M['m00'],M['m01']/M['m00'])
+    return centroid
+
+def generate_boundary_pixels(img):
+    print "Generating the hand boundary pixels"
     rows,cols = img.shape
-    moment = 0
-    row,col=0,0
+    row,col = 0,0
+    boundary_pixels = []
     while row<rows:
         col=0
         while col<cols:
-            moment = moment+((row**i)*(col**j)*(img[row][col])/255)
+            if img[row][col]==255:
+                boundary_pixels.append((col,row))
             col+=1
         row+=1
-    return moment
+    print "Finished generating the hand boundary pixels"
+    print "number of boundary pixels are "+str(len(boundary_pixels))
+    return boundary_pixels
 
-def compute_centroid(img):
-    print("Computing centroid")
-    IM_00 = image_moment(img,0,0)
-    print("Done computing M00")
-    IM_01 = image_moment(img,0,1)
-    print("Done computing M01")
-    IM_10 = image_moment(img,1,0)
-    print("Done computing M10")
-    return (IM_10/IM_00,IM_01/IM_00)
+def vertical_image_peak_detection(boundary_pixels):
+    mask_size = 7
+    offset = int(7/2)
+    i,peaks = offset,[]
+    while i<len(boundary_pixels)-offset:
+        mask = [boundary_pixels[i+item][1] for item in xrange(-(offset),offset+1)]
+        if mask[0]-mask[1]>=0 and mask[2]-mask[3]>=0 and mask[1]-mask[2]>=0 and mask[2]-mask[3]>=0 and mask[3]-mask[4]<=0 and mask[4]-mask[5]<=0 and mask[5]-mask[6]<=0:
+            peaks.append(boundary_pixels[i])
+        i+=1
+    return peaks
+
+def horizontal_image_peak_detection(img):
+    pass
+
+def eucledian_distance(peak,centroid):
+    return pow(((peak[0]-centroid[0])**2)+(peak[1]-centroid[1])**2,0.5)
+def hand_pixel_count(img):
+    rows,cols = img.shape
+    count = 0
+    row = 0
+    while row<rows:
+        col = 0
+        while col<cols:
+            if img[row,col]==255:
+                count+=1
+            col+=1
+        row+=1
+    return count
+
+def vertical_thumb_detection(img):
+    hand_pixels = hand_pixel_count(img)
+    rows,cols = img.shape
+    mid_col = cols/2
+    row,col=0,0
+    while row<rows:
+        mask_left = [img[row,(mid_col/2)+item] for item in xrange(-15,15)]
+        mask_right = [img[row,((3*mid_col)/2)+item] for item in xrange(-15,15)]
+        if sum(mask_right)<0.00069*hand_pixels or sum(mask_left)<0.00069*hand_pixels:
+            print "Thumb present"
+            break
+        row+=1
+
 
 def image_processing(image_addr):
     img = image_loading(image_addr)
@@ -162,22 +209,49 @@ def image_processing(image_addr):
     closing = cv2.morphologyEx(img_eroded, cv2.MORPH_OPEN,  kernel)
     hand_boundary=generating_boundary_of_hand(closing)
     vertical_ratio = vertical_identification(hand_boundary)
-    horizontal_ratio = horizontal_identification(hand_boundary)
-    centroid = compute_centroid(img_binary_otsu)
+    #horizontal_ratio = horizontal_identification(hand_boundary)
+    hand_boundary_pixels = generate_boundary_pixels(hand_boundary)
+    centroid = compute_centroid(hand_boundary)
+
+        #cv2.drawContours(img, contours, item, (0,255,0), 3)
+        #showing_image(img,"{} contour image".format(item))
     #if vertical_ratio>horizontal_ratio:
-    #    print(image_addr +" is horizontally oriented image")
+    #    horizontal_image_peak_detection(hand_boundary_pixels)
     #elif vertical_ratio<horizontal_ratio:
-#        print(image_addr +" is vertically oriented image")
-#    else:
-#        print("ambigious data. DISCARD IT")
-    #showing_image(img,"Original image")
+    #    pass
+    peaks = vertical_image_peak_detection(hand_boundary_pixels)
+    distances_peak = [(peak,eucledian_distance(peak,centroid)) for peak in peaks]
+    distances = [item[1] for item in distances_peak]
+    max_distance = max(distances)
+    threshold_distance = 0.75*max_distance
+    #print centroid
+    #print threshold_distance,max_distance
+    tip_distances = [item for item in distances_peak if item[1]>threshold_distance ]
+    #print len(tip_distances)
+    #plt.plot([item[0][0] for item in tip_distances],[item[0][1] for item in tip_distances],'bo')
+    peaks = [item[0] for item in tip_distances]
+    y_peaks = [item[1] for item in peaks]
+    print peaks
+    plotter = []
+    for item in peaks:
+        plotter.append(item)
+        plotter.append(centroid)
+    top = max(y_peaks)
+    t = 0.75*(top)
+    plt.axhline(top,0,1)
+    plt.axhline(t,0,1)
+    plt.plot(plotter)
+    plt.show()
+
+    #vertical_thumb_detection(closing)
+
     #showing_image(img_binary_otsu,"Binary image")
     #showing_image(img_binary_otsu,"Binary image")
     #showing_image(img_eroded,"eroded image")
     #showing_image(closing,"temp image")
-    #showing_image(hand_boundary,"boundary image")
+    #showing_image(img,"Original image")
 
-images = ["Chirag1F.jpg","Chirag2F.jpg","ChiragPF.jpg","Chirag5F.jpg"]
+images = ["Satish1F.jpg","Satish2F.jpg","Satish3F.jpg","Satish4F.jpg","Satish5F.jpg"]
 # Generate trackbar Window Name
 TrackbarName = "Trackbar"
 # Make Window and Trackbar

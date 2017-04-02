@@ -5,6 +5,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
+
 def image_loading(img_addr):
     #function for checking if image is loaded successfully
     if os.path.isfile(img_addr):
@@ -28,64 +29,64 @@ def closing_image(title):
     cv2.destroyWindow(title)
 
 def left_side_of_hand(img):
-    rows,cols,channels = img.shape
+    rows,cols= img.shape
     #just a hack for now
     background = img[0][0]
     col = 0
     while col<cols:
         row = 0
         while row<rows:
-            temp = []
-            temp = [item for item in img[row][col] if item not in background]
-            if temp != []:
+            #temp = []
+            #temp = [item for item in img[row][col] if item not in background]
+            if img[row][col] != background:
                 return col
             row+=1
         col+=1
     return -1
 
 def right_side_of_hand(img):
-    rows,cols,channels = img.shape
+    rows,cols = img.shape
     #just a hack for now
     background = img[0][0]
     col = cols-1
     while col>0:
         row = 0
         while row<rows:
-            temp = []
-            temp = [item for item in img[row][col] if item not in background]
-            if temp != []:
+            #temp = []
+            #temp = [item for item in img[row][col] if item not in background]
+            if img[row][col] != background:
                 return col
             row+=1
         col-=1
     return -1
 
 def top_of_hand(img):
-    rows,cols,channels = img.shape
+    rows,cols = img.shape
     #just a hack for now
     background = img[0][0]
     row = 0
     while row<rows:
         col = 0
         while col<cols:
-            temp = []
-            temp = [item for item in img[row][col] if item not in background]
-            if temp != []:
+            #temp = []
+            #temp = [item for item in img[row][col] if item not in background]
+            if img[row][col] != background:
                 return row
             col+=1
         row+=1
     return -1
 
 def bottom_of_hand(img):
-    rows,cols,channels = img.shape
+    rows,cols = img.shape
     #just a hack for now
     background = img[0][0]
     row = rows-1
     while row>0:
         col = 0
         while col<cols:
-            temp = []
-            temp = [item for item in img[row][col] if item not in background]
-            if temp != []:
+            #temp = []
+            #temp = [item for item in img[row][col] if item not in background]
+            if img[row][col] != background:
                 return row
             col+=1
         row-=1
@@ -93,7 +94,7 @@ def bottom_of_hand(img):
 
 def generating_boundary_of_hand(img):
     v = np.median(img)
-    sigma = 0.33
+    sigma = 0.10
     # apply automatic Canny edge detection using the computed median
     lower = int(max(0, (1.0 - sigma) * v))
     upper = int(min(255, (1.0 + sigma) * v))
@@ -165,7 +166,7 @@ def vertical_image_peak_detection(boundary_pixels):
         mask = [boundary_pixels[i+item][1] for item in xrange(-(offset),offset+1)]
         if mask[0]-mask[1]>=0 and mask[2]-mask[3]>=0 and mask[1]-mask[2]>=0 and mask[2]-mask[3]>=0 and mask[3]-mask[4]<=0 and mask[4]-mask[5]<=0 and mask[5]-mask[6]<=0:
             peaks.append(boundary_pixels[i])
-        i+=1
+        i+=offset
     return peaks
 
 def horizontal_image_peak_detection(img):
@@ -173,6 +174,7 @@ def horizontal_image_peak_detection(img):
 
 def eucledian_distance(peak,centroid):
     return pow(((peak[0]-centroid[0])**2)+(peak[1]-centroid[1])**2,0.5)
+
 def hand_pixel_count(img):
     rows,cols = img.shape
     count = 0
@@ -188,17 +190,21 @@ def hand_pixel_count(img):
 
 def vertical_thumb_detection(img):
     hand_pixels = hand_pixel_count(img)
+    left,right = left_side_of_hand(img),right_side_of_hand(img)
+    top,bottom = top_of_hand(img),bottom_of_hand(img)
+    right_sum,left_sum = 0,0
     rows,cols = img.shape
-    mid_col = cols/2
-    row,col=0,0
+    row = top
     while row<rows:
-        mask_left = [img[row,(mid_col/2)+item] for item in xrange(-15,15)]
-        mask_right = [img[row,((3*mid_col)/2)+item] for item in xrange(-15,15)]
-        if sum(mask_right)<0.00069*hand_pixels or sum(mask_left)<0.00069*hand_pixels:
-            print "Thumb present"
-            break
+        mask_left = [img[row,left+item]/255 for item in xrange(0,30)]
+        mask_right = [img[row,right-item]/255 for item in xrange(0,30)]
+        right_sum+=sum(mask_right)
+        left_sum += sum(mask_left)
         row+=1
-
+    if right_sum<hand_pixels*0.00069 or left_sum<hand_pixels*0.00069:
+        print "thumb preset"
+    else:
+        print "thumb absent"
 
 def image_processing(image_addr):
     img = image_loading(image_addr)
@@ -208,50 +214,55 @@ def image_processing(image_addr):
     img_eroded = cv2.erode(img_binary_otsu,kernel,iterations = 1)
     closing = cv2.morphologyEx(img_eroded, cv2.MORPH_OPEN,  kernel)
     hand_boundary=generating_boundary_of_hand(closing)
-    vertical_ratio = vertical_identification(hand_boundary)
-    #horizontal_ratio = horizontal_identification(hand_boundary)
     hand_boundary_pixels = generate_boundary_pixels(hand_boundary)
-    centroid = compute_centroid(hand_boundary)
+    centroid = compute_centroid(img_gray)
 
-        #cv2.drawContours(img, contours, item, (0,255,0), 3)
-        #showing_image(img,"{} contour image".format(item))
-    #if vertical_ratio>horizontal_ratio:
-    #    horizontal_image_peak_detection(hand_boundary_pixels)
-    #elif vertical_ratio<horizontal_ratio:
-    #    pass
+    showing_image(img,"Original image")
+    showing_image(closing,"closed image")
+    showing_image(hand_boundary,"boundary image")
     peaks = vertical_image_peak_detection(hand_boundary_pixels)
+#    vertical_thumb_detection(closing)
     distances_peak = [(peak,eucledian_distance(peak,centroid)) for peak in peaks]
-    distances = [item[1] for item in distances_peak]
-    max_distance = max(distances)
-    threshold_distance = 0.75*max_distance
-    #print centroid
-    #print threshold_distance,max_distance
-    tip_distances = [item for item in distances_peak if item[1]>threshold_distance ]
-    #print len(tip_distances)
-    #plt.plot([item[0][0] for item in tip_distances],[item[0][1] for item in tip_distances],'bo')
-    peaks = [item[0] for item in tip_distances]
-    y_peaks = [item[1] for item in peaks]
-    print peaks
-    plotter = []
-    for item in peaks:
-        plotter.append(item)
-        plotter.append(centroid)
-    top = max(y_peaks)
+    distance_gradient = []
+    for i in xrange(len(distances_peak)-1):
+        distance_gradient.append(distances_peak[i+1][1]-distances_peak[i][1])
+    distance_gradient.append(0)
+    plot_points = []
+    for i in xrange(len(distance_gradient)):
+        if (distance_gradient[i]<0 and distance_gradient[i+1]>0 ) or  (distance_gradient[i]>0 and distance_gradient[i+1]<0 ):
+            plot_points.append(distances_peak[i-1])
+    distancematrix = {}
+    for item in plot_points:
+        distancematrix[item] = []
+        for i in plot_points:#plot_points[:plot_points.index(item)]+plot_points[plot_points.index(item)+1:]:
+            distancematrix[item].append(eucledian_distance(i[0],item[0]))
+    final_plot_points = []
+    #threshold_distance = 100
+    #threshold_distance = 150
+    threshold_distance = 200
+    for item in distancematrix.keys():
+        for distance in distancematrix[item]:
+            if distance > threshold_distance:
+                final_plot_points.append(plot_points[distancematrix[item].index(distance)][0])
+    temp =final_plot_points
+    final_plot_points = []
+    final_plot_points = [item for item in temp if item not in final_plot_points]
+    c = sorted(final_plot_points)
+    x,y = zip(*c)
+    rows,cols = hand_boundary.shape
+    y = [rows - item for item in y]
+    top = max(y)
     t = 0.75*(top)
     plt.axhline(top,0,1)
     plt.axhline(t,0,1)
-    plt.plot(plotter)
+    plt.plot(x,y,'-o')
     plt.show()
 
-    #vertical_thumb_detection(closing)
-
-    #showing_image(img_binary_otsu,"Binary image")
-    #showing_image(img_binary_otsu,"Binary image")
-    #showing_image(img_eroded,"eroded image")
-    #showing_image(closing,"temp image")
-    #showing_image(img,"Original image")
-
-images = ["Satish1F.jpg","Satish2F.jpg","Satish3F.jpg","Satish4F.jpg","Satish5F.jpg"]
+images= []
+for item in os.listdir(os.getcwd()):
+    if ".jpg" in item:
+        images.append(item)
+print images
 # Generate trackbar Window Name
 TrackbarName = "Trackbar"
 # Make Window and Trackbar
